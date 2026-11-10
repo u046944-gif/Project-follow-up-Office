@@ -151,7 +151,7 @@ async function run(key,op){
 function writeError(e){
   if(e&&e.kind==="permission")toast("That change wasn't saved because your role doesn't allow it.");
   else if(e&&e.kind==="network")toast("Couldn't save the change. Check your connection and try again.");
-  else toast((e&&e.message)?("Couldn't save: "+e.message):"Couldn't save the change. Check your connection and try again.");
+  else toast("Couldn't save the change. Check your connection and try again.");
   scheduleReload();
 }
 function logEntry(text){return {at:new Date().toISOString(),by:S.myId,text}}
@@ -1093,12 +1093,12 @@ function authErr(e){
   const m=(e&&e.message)||"";
   if(/Invalid login credentials/i.test(m))return "Email or password is incorrect.";
   if(/Email not confirmed/i.test(m))return "Confirm your email first. Check your inbox for the confirmation link.";
-  if(/already registered|already exists/i.test(m))return "An account with this email already exists. Sign in instead.";
   if(/Password should be/i.test(m))return "Choose a longer password (at least 8 characters).";
   if(/rate limit|too many/i.test(m))return "Too many attempts. Wait a minute and try again.";
   if(/Failed to fetch|network/i.test(m))return "Can't reach the server. Check your connection.";
-  return m||"Something went wrong. Try again.";
+  return "Something went wrong. Try again.";
 }
+const SIGNUP_NEUTRAL="Account created. Check your email to confirm it, then sign in.";
 document.addEventListener("submit",async e=>{
   const f=e.target.closest("[data-form]");if(!f)return;
   e.preventDefault();
@@ -1110,11 +1110,15 @@ document.addEventListener("submit",async e=>{
     if(kind==="signin"){await auth.signIn(email,pw);S.authMsg=null}
     else if(kind==="signup"){
       const r=await auth.signUp(name,email,pw);
-      if(!r.session){S.authView="signin";S.authMsg={text:"Account created. Check your email to confirm it, then sign in."}}
+      if(!r.session){S.authView="signin";S.authMsg={text:SIGNUP_NEUTRAL}}
     }
     else if(kind==="forgot"){await auth.resetPassword(email);S.authMsg={text:"If that email has an account, a reset link is on its way."}}
     else if(kind==="recovery"){await auth.updatePassword(pw);S.authView="signin";S.authMsg=null;toast("Password updated");S.recovering=false;await startSession()}
-  }catch(err){S.authMsg={err:true,text:authErr(err)}}
+  }catch(err){
+    // Answer the same way whether or not the email already has an account, so the form can't be used to discover who is registered.
+    if(kind==="signup"&&/already registered|already exists|user already/i.test((err&&err.message)||"")){S.authView="signin";S.authMsg={text:SIGNUP_NEUTRAL}}
+    else S.authMsg={err:true,text:authErr(err)};
+  }
   btn.disabled=false;
   if(document.body.classList.contains("signed-out"))renderAuth();
 });
