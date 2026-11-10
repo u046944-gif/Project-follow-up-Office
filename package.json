@@ -6,7 +6,7 @@
   "description": "Team task planning web app (plans, buckets, board, calendar, timeline, charts, admin) on Supabase. Installable as an app (PWA).",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node node_modules/vite/bin/vite.js build",
     "preview": "vite preview"
   },
   "dependencies": {
